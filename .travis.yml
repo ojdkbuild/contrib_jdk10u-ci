@@ -61,6 +61,7 @@ install:
             libXrender-devel
             xorg-x11-proto-devel
             elfutils-libelf-devel
+            fontconfig-devel
             dejavu-serif-fonts
             dejavu-sans-fonts
             dejavu-sans-mono-fonts
