@@ -49,6 +49,7 @@ install:
             which
             zip
             unzip
+            patch
             alsa-lib-devel
             cups-devel
             freetype-devel
@@ -74,6 +75,7 @@ before_script:
   - $D tar -xjf ${OJDK_TAG}.tar.bz2
   - $D rm ${OJDK_TAG}.tar.bz2
   - $D mv jdk10u-${OJDK_TAG} jdk10u
+  - $D bash -c "cd jdk10u && patch -p1 < /host/readdir.patch"
 
 script:
   - $D mkdir jdkbuild
@@ -89,7 +91,7 @@ script:
         --with-boot-jdk=/opt/bootjdk
         --with-cacerts-file=/etc/pki/java/cacerts
         --with-version-pre=${OJDK_MILESTONE} 
-        --with-version-security=${OJDK_UPDATE}
+        --with-version-update=${OJDK_UPDATE}
         --with-version-build=${OJDK_BUILD}
         --with-version-opt=''"
   - $D bash -c "cd jdkbuild && make images LOG=info"
