@@ -10,5 +10,5 @@ Builds are done in CentOS 6 containers for better compatibility with various Lin
 License information
 -------------------
 
-OpenJDK binaries are released under the [GNU GPL v. 2 with classpath exception](https://github.com/ojdkbuild/contrib_jdk8u-ci/blob/master/LICENSE).
+OpenJDK binaries are released under the [GNU GPL v. 2 with classpath exception](https://github.com/ojdkbuild/contrib_jdk10u-ci/blob/master/LICENSE).
 
