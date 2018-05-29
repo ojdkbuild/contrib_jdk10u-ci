@@ -1,0 +1,117 @@
+# Copyright 2018, akashche at redhat.com
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+language: cpp
+
+sudo: required
+
+services:
+  - docker
+
+os:
+  - linux
+
+env:
+  global:
+    - OJDK_MILESTONE=ojdkbuild
+    - OJDK_WITH_NATIVE_DEBUG_SYMBOLS=none
+    - OJDK_WITH_DEBUG_LEVEL=release
+
+before_install:
+  - set -e
+  - export OJDK_TAG=`git describe --exact-match --tags HEAD`
+  - if [ -z ${OJDK_TAG} ] ; then exit 1 ; fi
+  - export OJDK_UPDATE=`echo ${OJDK_TAG} | sed 's/\./ /g' | sed 's/+/ /' | awk '{print $3}'`
+  - export OJDK_BUILD=`echo ${OJDK_TAG} | sed 's/+/ /' | awk '{print $2}'`
+  - export OJDK_IMAGE=jdk-9.0.${OJDK_UPDATE}-${OJDK_MILESTONE}-linux-x64
+  - export D="docker exec builder"
+  - docker pull centos:6
+  - docker run
+            -id
+            --name builder
+            -w /opt
+            -v `pwd`:/host
+            centos:6 bash
+
+install:
+  - $D yum install -y
+            which
+            zip
+            unzip
+            alsa-lib-devel
+            cups-devel
+            freetype-devel
+            gcc-c++
+            libX11-devel
+            libXi-devel
+            libXinerama-devel
+            libXt-devel
+            libXtst-devel
+            libXrender-devel
+            xorg-x11-proto-devel
+            elfutils-libelf-devel
+            dejavu-serif-fonts
+            dejavu-sans-fonts
+            dejavu-sans-mono-fonts
+  - $D curl -LO https://github.com/ojdkbuild/contrib_jdk9u-ci/releases/download/jdk-9.0.4%2B12/jdk-9.0.4-ojdkbuild-linux-x64.zip
+  - $D unzip -q jdk-9.0.4-ojdkbuild-linux-x64.zip
+  - $D mv jdk-9.0.4-ojdkbuild-linux-x64 bootjdk
+
+before_script:
+  - $D curl -LO http://hg.openjdk.java.net/jdk-updates/jdk10u/archive/${OJDK_TAG}.tar.bz2
+  - $D tar -xjf ${OJDK_TAG}.tar.bz2
+  - $D rm ${OJDK_TAG}.tar.bz2
+  - $D mv jdk10u-${OJDK_TAG} jdk10u
+
+script:
+  - $D mkdir jdkbuild
+  - $D bash -c "cd jdkbuild &&
+        bash /opt/jdk10u/configure
+        --enable-unlimited-crypto=yes
+        --disable-warnings-as-errors
+        --disable-hotspot-gtest
+        --with-native-debug-symbols=${OJDK_WITH_NATIVE_DEBUG_SYMBOLS} 
+        --with-debug-level=${OJDK_WITH_DEBUG_LEVEL}
+        --with-stdc++lib=static
+        --with-zlib=bundled
+        --with-boot-jdk=/opt/bootjdk
+        --with-cacerts-file=/etc/pki/java/cacerts
+        --with-version-pre=${OJDK_MILESTONE} 
+        --with-version-security=${OJDK_UPDATE}
+        --with-version-build=${OJDK_BUILD}
+        --with-version-opt=''"
+  - $D bash -c "cd jdkbuild && make images LOG=info"
+  - $D mv /opt/jdkbuild/images/jdk ${OJDK_IMAGE}
+  - $D rm -rf ./${OJDK_IMAGE}/demo
+  - $D cp -a /usr/share/fonts/dejavu/ ./${OJDK_IMAGE}/lib/fonts
+  - $D zip -qyr9 ${OJDK_IMAGE}.zip ${OJDK_IMAGE}
+  - $D mv ${OJDK_IMAGE}.zip /host/
+  - sha256sum ${OJDK_IMAGE}.zip > ${OJDK_IMAGE}.zip.sha256
+
+deploy:
+  provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: OyuTTue8WVt4jZEJIjVW9mBFMAo+6PgyfLU/YyBR1BF4OuL68phwD0GJ7v0a7mgk7/MuMSsi4JecPZF8j5XEyoFK3bgBmp1v+KBcJNxcD0PU/kkGYUM7Ms25/6BLhDch+z8fTNUFfcbBC4idF4jhVmvL0sKHz7N6jnbADuBmUl3ou9tq2kRWOC+w6CZxGRpm4KXj8Q2XoNPS8d3R7keVgJdt76gfHzfVG2YzkQoE1CaOhhISPOWSv0QvH4XXj0rA6kQivKm3/1Cse/75NAZhZaWk+j443/RncLfNADCiCOeqqYw9GDOhw1kOhLeBm6M8MPDNbE+GT1Tl0rw0FhfKEyzNycKc/xuieJWvW15l6HFhxgmpJ8yw36aIreJ/g/aGAHxlnrejHyf4T0kQmnGsAPWE01e+4ipQLsuvqT/51wuPIs42cTP0NImVw4Mm3YbLtF1KBqHWdhK8KGfXaPiYNpfqQfsNap43sTVGW5R1Ufgt/WgzY7tronuKC552DcqWyiuFXA+QOy+TQx/3dtcqO0IEk0vRHuo9taGMtBGoUE5okCkKJxBOoXryGBKeqx5I9RbaaUl77FbGWDYRh/KTs1ZIMxS5wSsogWUru4E8T2ohwvwmBDgxxAgqcRvfj84/J179u3UkkVvu6xN42iA0fVjWmL2P+kH88v0TymE/uzo=
+  file:
+    - ${OJDK_IMAGE}.zip
+    - ${OJDK_IMAGE}.zip.sha256
+  on:
+    repo: ojdkbuild/contrib_jdk10u-ci
+    tags: true
+
+notifications:
+  email:
+    on_success: always
+
