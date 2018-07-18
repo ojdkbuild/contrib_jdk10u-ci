@@ -1,7 +1,7 @@
 OpenJDK 10 Linux builds
 =======================
 
-[![travis](https://travis-ci.org/ojdkbuild/contrib_jdk10u-ci.svg?branch=jdk-10.0.1%2B10)](https://travis-ci.org/ojdkbuild/contrib_jdk10u-ci/builds)
+[![travis](https://travis-ci.org/ojdkbuild/contrib_jdk10u-ci.svg?branch=jdk-10.0.2%2B13)](https://travis-ci.org/ojdkbuild/contrib_jdk10u-ci/builds)
 
 OpenJDK 10 "vanilla" builds done on Travis CI - [downloads](https://github.com/ojdkbuild/contrib_jdk10u-ci/releases).
 
